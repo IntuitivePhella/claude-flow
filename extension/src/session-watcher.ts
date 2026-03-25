@@ -124,10 +124,10 @@ export class SessionWatcher implements vscode.Disposable {
     const workspaceFolder = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath
     if (workspaceFolder) {
       // Claude Code encodes project paths: /Users/simon/project → -Users-simon-project
-      // Resolve symlinks first, then replace both / and \ (Windows) with -
+      // Resolve symlinks first, then replace /, \ (Windows), and : (drive letter) with -
       let resolved = workspaceFolder
       try { resolved = fs.realpathSync(resolved) } catch { /* use original if realpathSync fails */ }
-      const encoded = resolved.replace(/[/\\]/g, '-')
+      const encoded = resolved.replace(/[/\\:]/g, '-')
 
       // Try the resolved encoding first; fall back to unresolved if the directory doesn't exist
       // (handles edge cases where Claude Code didn't resolve symlinks the same way)
@@ -135,7 +135,7 @@ export class SessionWatcher implements vscode.Disposable {
       if (fs.existsSync(resolvedDir)) {
         this.workspacePath = encoded
       } else {
-        const unresolvedEncoded = workspaceFolder.replace(/[/\\]/g, '-')
+        const unresolvedEncoded = workspaceFolder.replace(/[/\\:]/g, '-')
         const unresolvedDir = path.join(CLAUDE_DIR, unresolvedEncoded)
         this.workspacePath = fs.existsSync(unresolvedDir) ? unresolvedEncoded : encoded
       }
