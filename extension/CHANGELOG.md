@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.5.0
+
+- Fix: heavy performance degradation during long sessions with many agents (#20)
+  - Decouple canvas rendering from React state — canvas reads from a ref at 60fps, React re-renders only on data changes
+  - Virtualize transcript and message feed panels for constant render cost regardless of message count
+  - Replace timeline panel DOM with canvas rendering
+  - Fix tool call cleanup leak that caused unbounded object growth after ~5000 events
+  - Fix event log cap causing mass event replay in mock/stress mode
+  - Cap simulation loop at 60fps to reduce CPU/GPU usage
+- Add stress test scenarios for profiling (`?stress=light|medium|heavy|extreme`)
+- Add performance overlay for debugging (`?perf`)
+- Fix passive event listener warning when panning canvas
+- File attention panel: show agent count instead of full name list
+
 ## 0.4.7
 
 - Fix: reset button in review mode no longer breaks the extension
