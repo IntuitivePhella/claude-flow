@@ -27,9 +27,20 @@ Claude Code is powerful, but its execution is a black box — you see the final 
 
 ## Getting Started
 
-### Standalone Web App (no VS Code required)
+### Quick Start (no VS Code required)
 
-Use Agent Flow directly in your browser — works with Claude Code in any terminal.
+```bash
+npx agent-flow-app
+```
+
+This starts the visualizer in your browser. Start a Claude Code session in another terminal — events will stream in real-time.
+
+Options:
+- `--port <number>` — change the server port (default: 3001)
+- `--no-open` — don't open the browser automatically
+- `--verbose` — show detailed event logs
+
+### Standalone Web App (from source)
 
 ```bash
 git clone https://github.com/patoles/agent-flow.git

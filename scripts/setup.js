@@ -216,14 +216,28 @@ function isAlreadySetup() {
 
 // ─── Main ───────────────────────────────────────────────────────────────────
 
-const force = process.argv.includes('--force')
-
-if (!force && isAlreadySetup()) {
-  console.log('Agent Flow is already set up. Run with --force to reconfigure.')
-  process.exit(0)
+/** Ensure hooks are configured, skip silently if already set up. */
+function ensureSetup() {
+  if (isAlreadySetup()) return
+  console.log('Setting up agent hooks...')
+  ensureHookScript()
+  configureHooks()
+  console.log('')
 }
 
-console.log('Setting up Agent Flow...\n')
-ensureHookScript()
-configureHooks()
-console.log('\nDone! New Claude Code sessions will stream events to Agent Flow.')
+module.exports = { ensureSetup }
+
+// Run directly: node scripts/setup.js [--force]
+if (require.main === module) {
+  const force = process.argv.includes('--force')
+
+  if (!force && isAlreadySetup()) {
+    console.log('Agent Flow is already set up. Run with --force to reconfigure.')
+    process.exit(0)
+  }
+
+  console.log('Setting up Agent Flow...\n')
+  ensureHookScript()
+  configureHooks()
+  console.log('\nDone! New sessions will stream events to Agent Flow.')
+}

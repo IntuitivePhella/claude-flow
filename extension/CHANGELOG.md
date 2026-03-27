@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.6.1
+
+- npx support — `npx agent-flow-app` starts the visualizer without cloning the repo
+- Internal refactor: shared relay module and build config
+
 ## 0.6.0
 
 - Standalone web app — run Agent Flow in the browser without VS Code (`pnpm run dev`)

@@ -8,6 +8,11 @@ const LOG_LEVELS: Record<string, number> = { debug: 0, info: 1, warn: 2, error: 
 
 let minLevel = 'info'
 
+/** Set the minimum log level (debug, info, warn, error) */
+export function setLogLevel(level: string) {
+  if (level in LOG_LEVELS) minLevel = level
+}
+
 function shouldLog(level: string): boolean {
   return (LOG_LEVELS[level] ?? 0) >= (LOG_LEVELS[minLevel] ?? 0)
 }

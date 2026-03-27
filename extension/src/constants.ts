@@ -37,6 +37,12 @@ export const BRIDGE_INIT_RETRY_MS = 100
 /** Default dev server port */
 export const DEFAULT_DEV_PORT = 3002
 
+/** Default SSE relay port (used by dev relay, standalone app, and webview build) */
+export const DEFAULT_RELAY_PORT = 3001
+
+/** Default dev web app origin (for CORS in dev relay) */
+export const DEV_WEB_ORIGIN = 'http://localhost:3000'
+
 /** Returned by HookServer.start() when the port is already in use by another instance */
 export const HOOK_SERVER_NOT_STARTED = -1
 
