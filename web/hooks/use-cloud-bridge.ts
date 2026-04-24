@@ -32,6 +32,7 @@ export function useCloudBridge(): CloudBridgeResult {
 
   const pendingEventsRef = useRef<SimulationEvent[]>([])
   const sessionEventsRef = useRef<Map<string, SimulationEvent[]>>(new Map())
+  const sessionStartTimesRef = useRef<Map<string, number>>(new Map())
   const [, setEventVersion] = useState(0)
 
   const channelRef = useRef<RealtimeChannel | null>(null)
@@ -96,6 +97,11 @@ export function useCloudBridge(): CloudBridgeResult {
     const sessionId = hookEvent.session_id || hookEvent.sessionId || 'unknown'
     const eventType = hookEvent.hook_event_type || hookEvent.type
 
+    // Track session start time
+    if (!sessionStartTimesRef.current.has(sessionId)) {
+      sessionStartTimesRef.current.set(sessionId, Date.now())
+    }
+
     // Create or update session
     setSessions((prev) => {
       const existing = prev.find((s) => s.id === sessionId)
@@ -104,7 +110,7 @@ export function useCloudBridge(): CloudBridgeResult {
           id: sessionId,
           label: hookEvent.cwd?.split(/[\\/]/).pop() || `Session ${sessionId.slice(0, 8)}`,
           status: 'active',
-          startTime: Date.now(),
+          startTime: sessionStartTimesRef.current.get(sessionId) || Date.now(),
           lastActivityTime: Date.now(),
         }
 
@@ -112,6 +118,18 @@ export function useCloudBridge(): CloudBridgeResult {
         if (prev.length === 0) {
           selectedSessionIdRef.current = sessionId
           setSelectedSessionId(sessionId)
+
+          // Emit agent_spawn for new session
+          const spawnEvent: SimulationEvent = {
+            time: 0,
+            type: 'agent_spawn',
+            payload: { name: ORCHESTRATOR_NAME, isMain: true, task: hookEvent.cwd || 'Cloud Session' },
+            sessionId,
+          }
+          pendingEventsRef.current.push(spawnEvent)
+          const buf = sessionEventsRef.current.get(sessionId) || []
+          buf.push(spawnEvent)
+          sessionEventsRef.current.set(sessionId, buf)
         }
 
         return [...prev, newSession]
@@ -144,7 +162,8 @@ export function useCloudBridge(): CloudBridgeResult {
 
   const convertToSimulationEvent = (hookEvent: any, sessionId: string): SimulationEvent | null => {
     const eventType = hookEvent.hook_event_type || hookEvent.type
-    const time = (Date.now() - (sessions.find((s) => s.id === sessionId)?.startTime || Date.now())) / 1000
+    const startTime = sessionStartTimesRef.current.get(sessionId) || Date.now()
+    const time = (Date.now() - startTime) / 1000
 
     switch (eventType) {
       case 'SessionStart':
