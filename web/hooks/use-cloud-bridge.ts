@@ -58,15 +58,11 @@ export function useCloudBridge(): CloudBridgeResult {
     // Subscribe to realtime channel
     const channel = supabase.channel(`agent-flow:${token}`)
 
-    console.log('[CloudBridge] Connecting to Supabase...', { supabaseUrl, token: token.slice(0, 8) + '...' })
-
     channel
       .on('broadcast', { event: 'agent-event' }, ({ payload }) => {
-        console.log('[CloudBridge] Realtime event received:', payload)
         processEvent(payload)
       })
       .subscribe((status) => {
-        console.log('[CloudBridge] Subscription status:', status)
         if (status === 'SUBSCRIBED') {
           setConnectionStatus('connected')
           loadRecentEvents(token)
@@ -84,27 +80,20 @@ export function useCloudBridge(): CloudBridgeResult {
 
   const loadRecentEvents = async (token: string) => {
     try {
-      console.log('[CloudBridge] Loading recent events...')
       const res = await fetch(`/api/events?token=${token}`)
-      if (!res.ok) {
-        console.error('[CloudBridge] Failed to fetch events:', res.status)
-        return
-      }
+      if (!res.ok) return
 
       const { events } = await res.json()
-      console.log('[CloudBridge] Loaded events:', events?.length || 0)
       for (const event of events || []) {
         processEvent(event.payload)
       }
-    } catch (e) {
-      console.error('[CloudBridge] Failed to load recent events:', e)
+    } catch {
+      // Silently ignore errors
     }
   }
 
   const processEvent = (hookEvent: any) => {
     const sessionId = hookEvent.session_id || hookEvent.sessionId || 'unknown'
-    const eventType = hookEvent.hook_event_name || hookEvent.hook_event_type || hookEvent.type
-    console.log('[CloudBridge] Processing event:', { sessionId, eventType, hookEvent })
 
     // Track session start time
     if (!sessionStartTimesRef.current.has(sessionId)) {
@@ -182,7 +171,11 @@ export function useCloudBridge(): CloudBridgeResult {
           payload: { name: ORCHESTRATOR_NAME, isMain: true, task: hookEvent.cwd },
           sessionId,
         }
-      case 'PreToolUse':
+      case 'PreToolUse': {
+        const toolInput = hookEvent.tool_input || {}
+        const args = typeof toolInput === 'object'
+          ? (toolInput.file_path || toolInput.pattern || toolInput.command || toolInput.query || JSON.stringify(toolInput).slice(0, 100))
+          : String(toolInput)
         return {
           time,
           type: 'tool_call_start',
@@ -190,11 +183,24 @@ export function useCloudBridge(): CloudBridgeResult {
             agent: ORCHESTRATOR_NAME,
             tool: hookEvent.tool_name,
             id: hookEvent.tool_use_id,
-            input: hookEvent.tool_input,
+            args,
+            inputData: toolInput,
           },
           sessionId,
         }
-      case 'PostToolUse':
+      }
+      case 'PostToolUse': {
+        const toolResponse = hookEvent.tool_response
+        let resultText = 'Done'
+        if (typeof toolResponse === 'string') {
+          resultText = toolResponse.slice(0, 200)
+        } else if (toolResponse?.type === 'text' && toolResponse?.file?.filePath) {
+          resultText = `Read ${toolResponse.file.numLines || '?'} lines`
+        } else if (toolResponse?.matches) {
+          resultText = `${toolResponse.matches.length} matches`
+        } else if (toolResponse) {
+          resultText = JSON.stringify(toolResponse).slice(0, 100)
+        }
         return {
           time,
           type: 'tool_call_end',
@@ -202,10 +208,11 @@ export function useCloudBridge(): CloudBridgeResult {
             agent: ORCHESTRATOR_NAME,
             tool: hookEvent.tool_name,
             id: hookEvent.tool_use_id,
-            result: hookEvent.tool_result,
+            result: resultText,
           },
           sessionId,
         }
+      }
       case 'SubagentStart':
         return {
           time,
