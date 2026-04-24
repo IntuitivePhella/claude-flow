@@ -9,37 +9,19 @@ This is a fork of [Agent Flow](https://github.com/patoles/agent-flow) by [Simon 
 ## What's New in This Fork
 
 - **Cloud Mode**: Deploy to Netlify/Vercel and receive events from your local Claude Code via HTTPS
+- **Cloud Relay**: Full-featured monitoring with chat messages, token counts, and cost tracking
 - **Supabase Realtime**: Live event streaming using Supabase's real-time infrastructure
 - **Remote Monitoring**: Watch your AI agents work from any device, anywhere
 
-## Architecture
-
-```
-┌─────────────────┐     HTTPS POST      ┌──────────────────┐
-│  Claude Code    │ ──────────────────► │  Netlify/Vercel  │
-│  (your machine) │                     │  API Route       │
-└─────────────────┘                     └────────┬─────────┘
-                                                 │
-                                                 ▼
-                                        ┌──────────────────┐
-                                        │    Supabase      │
-                                        │    Realtime      │
-                                        └────────┬─────────┘
-                                                 │
-                                                 ▼
-                                        ┌──────────────────┐
-                                        │   Web Browser    │
-                                        │   (anywhere)     │
-                                        └──────────────────┘
-```
-
 ## Quick Start
 
-### Option 1: Local Mode (Original Behavior)
+### Option 1: Local Mode (Full Features)
+
+Best for local development with complete visualization.
 
 ```bash
-git clone https://github.com/YOUR_USERNAME/agent-flow-cloud.git
-cd agent-flow-cloud
+git clone https://github.com/IntuitivePhella/claude-flow.git
+cd claude-flow
 pnpm install
 pnpm run setup      # configure Claude Code hooks
 pnpm run dev        # start web app + event relay
@@ -47,52 +29,163 @@ pnpm run dev        # start web app + event relay
 
 Open http://localhost:3000 and start a Claude Code session.
 
-### Option 2: Cloud Mode (New!)
+**Features**: All panels work (Chat, Files, Cost, Timeline, Token tracking).
 
-See the [Cloud Deployment Guide](cloud/README.md) for full instructions.
+### Option 2: Cloud Mode with Cloud Relay (Recommended for Remote)
 
-**TL;DR:**
+Full-featured remote monitoring using the Cloud Relay.
 
-1. Create a [Supabase](https://supabase.com) project and run the schema:
-   ```sql
-   -- See cloud/supabase-schema.sql for full schema
-   create table agent_flow_events (
-     id uuid primary key default gen_random_uuid(),
-     channel_token text not null,
-     session_id text,
-     event_type text not null,
-     payload jsonb not null,
-     event_time float not null,
-     created_at timestamptz default now()
-   );
-   ```
+```bash
+# 1. Deploy to Netlify (see Cloud Setup below)
 
-2. Deploy to Netlify with environment variables:
-   ```
-   NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
-   NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
-   SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
-   AGENT_FLOW_CHANNEL_TOKEN=your-secret-token
-   NEXT_PUBLIC_AGENT_FLOW_CHANNEL_TOKEN=your-secret-token
-   ```
+# 2. Configure hooks to point to your deployment
+node cloud/setup-cloud-hooks.js --url https://your-site.netlify.app --token YOUR_SECRET
 
-3. Configure local hooks to send to your cloud deployment:
-   ```bash
-   node cloud/setup-cloud-hooks.js --url https://your-site.netlify.app --token your-secret-token
-   ```
+# 3. Run the cloud relay alongside Claude Code
+pnpm run cloud:relay -- --url https://your-site.netlify.app --token YOUR_SECRET
+```
 
-4. Open your deployed URL and start coding with Claude!
+**Features**: All panels work (Chat, Files, Cost, Timeline, Token tracking).
 
-## Features
+### Option 3: Cloud Mode with Hooks Only (Lightweight)
 
-All original Agent Flow features plus cloud capabilities:
+Minimal setup, but limited features.
 
-- **Live agent visualization**: Interactive node graph with real-time tool calls
-- **Claude Code + Codex support**: Auto-detects sessions from both runtimes
-- **Multi-session support**: Track multiple concurrent agent sessions
-- **Interactive canvas**: Pan, zoom, click to inspect details
-- **Timeline & transcript panels**: Full execution timeline and message history
-- **Cloud streaming**: Monitor from any device via Supabase Realtime
+```bash
+# 1. Deploy to Netlify (see Cloud Setup below)
+
+# 2. Configure hooks only (no relay needed)
+node cloud/setup-cloud-hooks.js --url https://your-site.netlify.app --token YOUR_SECRET
+```
+
+**Features**: Tool calls, subagents, files tracking. **No** chat messages or token counts.
+
+## Architecture
+
+### Local Mode
+```
+┌─────────────────┐                      ┌──────────────────┐
+│  Claude Code    │  ◄── JSONL files ──► │  Local Relay     │
+│  (your machine) │                      │  (watches files) │
+└─────────────────┘                      └────────┬─────────┘
+                                                  │ SSE
+                                                  ▼
+                                         ┌──────────────────┐
+                                         │   localhost:3000 │
+                                         └──────────────────┘
+```
+
+### Cloud Mode with Relay (Full Features)
+```
+┌─────────────────┐                      ┌──────────────────┐
+│  Claude Code    │  ◄── JSONL files ──► │  Cloud Relay     │
+│  (your machine) │                      │  (watches files) │
+└─────────────────┘                      └────────┬─────────┘
+                                                  │ HTTPS
+                                                  ▼
+                                         ┌──────────────────┐
+                                         │  Netlify/Vercel  │
+                                         │  + Supabase      │
+                                         └────────┬─────────┘
+                                                  │ Realtime
+                                                  ▼
+                                         ┌──────────────────┐
+                                         │   Web Browser    │
+                                         │   (anywhere)     │
+                                         └──────────────────┘
+```
+
+### Cloud Mode with Hooks Only (Limited)
+```
+┌─────────────────┐     Claude Hooks     ┌──────────────────┐
+│  Claude Code    │ ──────────────────►  │  Netlify/Vercel  │
+│  (your machine) │   (tool events only) │  + Supabase      │
+└─────────────────┘                      └────────┬─────────┘
+                                                  │ Realtime
+                                                  ▼
+                                         ┌──────────────────┐
+                                         │   Web Browser    │
+                                         └──────────────────┘
+```
+
+## Feature Comparison
+
+| Feature | Local Mode | Cloud + Relay | Cloud + Hooks Only |
+|---------|------------|---------------|-------------------|
+| Tool calls visualization | ✅ | ✅ | ✅ |
+| Subagent tracking | ✅ | ✅ | ✅ |
+| Files panel | ✅ | ✅ | ✅ |
+| Chat/Transcript | ✅ | ✅ | ❌ |
+| Token counts | ✅ | ✅ | ❌ |
+| Cost tracking | ✅ | ✅ | ❌ |
+| Context breakdown | ✅ | ✅ | ❌ |
+| Remote access | ❌ | ✅ | ✅ |
+| Requires local process | Relay | Cloud Relay | None |
+
+## Cloud Setup
+
+### 1. Create Supabase Project
+
+1. Go to [supabase.com](https://supabase.com) and create a new project
+2. Run the schema in the SQL Editor:
+
+```sql
+-- Create events table
+create table agent_flow_events (
+  id uuid primary key default gen_random_uuid(),
+  channel_token text not null,
+  session_id text,
+  event_type text not null,
+  payload jsonb not null,
+  event_time float not null,
+  created_at timestamptz default now()
+);
+
+-- Enable realtime
+alter publication supabase_realtime add table agent_flow_events;
+
+-- Create index for faster queries
+create index idx_agent_flow_events_session on agent_flow_events(session_id);
+create index idx_agent_flow_events_token on agent_flow_events(channel_token);
+```
+
+### 2. Deploy to Netlify
+
+[![Deploy to Netlify](https://www.netlify.com/img/deploy/button.svg)](https://app.netlify.com/start/deploy?repository=https://github.com/IntuitivePhella/claude-flow)
+
+Set these environment variables in Netlify:
+
+| Variable | Description |
+|----------|-------------|
+| `NEXT_PUBLIC_SUPABASE_URL` | Your Supabase project URL |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase anon/public key |
+| `SUPABASE_SERVICE_ROLE_KEY` | Supabase service role key |
+| `AGENT_FLOW_CHANNEL_TOKEN` | Secret token (generate one) |
+| `NEXT_PUBLIC_AGENT_FLOW_CHANNEL_TOKEN` | Same token (for frontend) |
+
+### 3. Configure Local Machine
+
+```bash
+# Generate a secure token
+TOKEN=$(openssl rand -hex 16)
+echo "Your token: $TOKEN"
+
+# Configure Claude Code hooks
+node cloud/setup-cloud-hooks.js --url https://your-site.netlify.app --token $TOKEN
+```
+
+### 4. Run Cloud Relay (Recommended)
+
+For full features (chat, tokens, cost), run the cloud relay:
+
+```bash
+pnpm run cloud:relay -- --url https://your-site.netlify.app --token YOUR_TOKEN
+
+# Or with verbose logging
+pnpm run cloud:relay -- --url https://your-site.netlify.app --token YOUR_TOKEN --verbose
+```
+
+The relay watches your local JSONL transcripts and sends rich event data to the cloud.
 
 ## Development
 
@@ -102,23 +195,55 @@ pnpm run setup            # configure Claude Code hooks (local mode)
 pnpm run dev              # start dev server + relay
 pnpm run dev:demo         # start with mock data
 pnpm run build:all        # production build
+pnpm run cloud:relay      # run cloud relay (requires --url and --token)
 ```
 
 ## Project Structure
 
 ```
-├── cloud/                 # Cloud deployment scripts (NEW)
-│   ├── README.md          # Cloud setup guide
-│   ├── setup-cloud-hooks.js
-│   └── supabase-schema.sql
+├── cloud/                 # Cloud deployment tools
+│   ├── README.md          # Detailed cloud setup guide
+│   ├── cloud-relay.ts     # Cloud relay script (watches JSONL, sends to cloud)
+│   ├── setup-cloud-hooks.js  # Configure Claude hooks for cloud
+│   └── supabase-schema.sql   # Database schema
 ├── web/                   # Next.js web application
-│   ├── app/api/events/    # Cloud event receiver (NEW)
-│   ├── hooks/use-cloud-bridge.ts  # Cloud mode hook (NEW)
-│   └── ...
+│   ├── app/api/events/    # Cloud event receiver API
+│   ├── hooks/
+│   │   ├── use-cloud-bridge.ts  # Cloud mode event handling
+│   │   ├── use-bridge.ts        # Local mode (SSE)
+│   │   └── use-agent-simulation.ts  # Core simulation logic
+│   └── components/        # React components
 ├── extension/             # VS Code extension
+│   └── src/
+│       ├── transcript-parser.ts  # JSONL parsing logic
+│       └── protocol.ts           # Event type definitions
 ├── scripts/               # Build and relay scripts
+│   └── relay.ts           # Local relay server
 └── app/                   # Standalone CLI app
 ```
+
+## Troubleshooting
+
+### Events not appearing in cloud UI
+
+1. Check that hooks are configured: `cat ~/.claude/settings.json | grep cloud-hook`
+2. Verify the token matches between hooks and Netlify environment
+3. Check Netlify function logs for errors
+4. Try the debug endpoint: `https://your-site.netlify.app/api/debug`
+
+### Chat/Tokens not showing in cloud mode
+
+You need to run the Cloud Relay for full features:
+
+```bash
+pnpm run cloud:relay -- --url https://your-site.netlify.app --token YOUR_TOKEN
+```
+
+Without the relay, only tool events are captured (Claude hooks don't expose message content or token counts).
+
+### Session cleanup
+
+Events are automatically deleted from Supabase when you run `/exit` in Claude Code.
 
 ## Credits
 
