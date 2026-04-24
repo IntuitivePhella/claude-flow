@@ -95,7 +95,7 @@ export function useCloudBridge(): CloudBridgeResult {
 
   const processEvent = (hookEvent: any) => {
     const sessionId = hookEvent.session_id || hookEvent.sessionId || 'unknown'
-    const eventType = hookEvent.hook_event_type || hookEvent.type
+    const eventType = hookEvent.hook_event_name || hookEvent.hook_event_type || hookEvent.type
 
     // Track session start time
     if (!sessionStartTimesRef.current.has(sessionId)) {
@@ -161,7 +161,7 @@ export function useCloudBridge(): CloudBridgeResult {
   }
 
   const convertToSimulationEvent = (hookEvent: any, sessionId: string): SimulationEvent | null => {
-    const eventType = hookEvent.hook_event_type || hookEvent.type
+    const eventType = hookEvent.hook_event_name || hookEvent.hook_event_type || hookEvent.type
     const startTime = sessionStartTimesRef.current.get(sessionId) || Date.now()
     const time = (Date.now() - startTime) / 1000
 
