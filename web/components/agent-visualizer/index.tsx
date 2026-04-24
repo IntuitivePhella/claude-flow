@@ -2,7 +2,7 @@
 
 import { useState, useCallback, useMemo, useEffect, useLayoutEffect, useRef } from "react"
 import { useAgentSimulation } from "@/hooks/use-agent-simulation"
-import { useVSCodeBridge } from "@/hooks/use-vscode-bridge"
+import { useBridge } from "@/hooks/use-bridge"
 import { useSelectionState } from "@/hooks/use-selection-state"
 import { useKeyboardShortcuts } from "@/hooks/use-keyboard-shortcuts"
 import { AgentCanvas } from "./canvas"
@@ -26,7 +26,7 @@ import { TopBar } from "./top-bar"
 import { useAudioEffects } from "@/hooks/use-audio-effects"
 
 export function AgentVisualizer() {
-  const bridge = useVSCodeBridge()
+  const bridge = useBridge()
 
   const {
     frameRef,
