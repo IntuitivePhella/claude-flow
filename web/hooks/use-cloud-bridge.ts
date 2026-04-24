@@ -169,7 +169,7 @@ export function useCloudBridge(): CloudBridgeResult {
       case 'PostToolUse':
         return {
           time,
-          type: 'tool_call_complete',
+          type: 'tool_call_end',
           payload: {
             agent: ORCHESTRATOR_NAME,
             tool: hookEvent.tool_name,
@@ -181,7 +181,7 @@ export function useCloudBridge(): CloudBridgeResult {
       case 'SubagentStart':
         return {
           time,
-          type: 'subagent_spawn',
+          type: 'subagent_dispatch',
           payload: {
             parent: hookEvent.parent_agent_name || ORCHESTRATOR_NAME,
             name: hookEvent.agent_name,
@@ -192,7 +192,7 @@ export function useCloudBridge(): CloudBridgeResult {
       case 'SubagentStop':
         return {
           time,
-          type: 'subagent_complete',
+          type: 'subagent_return',
           payload: {
             name: hookEvent.agent_name,
           },
