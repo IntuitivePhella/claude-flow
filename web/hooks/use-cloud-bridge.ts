@@ -21,7 +21,7 @@ interface CloudBridgeResult {
   isCloudMode: boolean
 }
 
-const ORCHESTRATOR_NAME = 'Claude'
+const ORCHESTRATOR_NAME = 'orchestrator'
 
 export function useCloudBridge(): CloudBridgeResult {
   const [connectionStatus, setConnectionStatus] = useState<ConnectionStatus>('disconnected')
