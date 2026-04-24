@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState, useCallback, useRef } from 'react'
-import { createClient, RealtimeChannel } from '@supabase/supabase-js'
+import { createClient, RealtimeChannel, SupabaseClient } from '@supabase/supabase-js'
 import type { SimulationEvent } from '@/lib/agent-types'
 import type { SessionInfo, ConnectionStatus } from '@/lib/vscode-bridge'
 
@@ -35,7 +35,8 @@ export function useCloudBridge(): CloudBridgeResult {
   const [, setEventVersion] = useState(0)
 
   const channelRef = useRef<RealtimeChannel | null>(null)
-  const supabaseRef = useRef<ReturnType<typeof createClient> | null>(null)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const supabaseRef = useRef<SupabaseClient<any, 'public', any> | null>(null)
 
   const isCloudMode = !!(
     process.env.NEXT_PUBLIC_SUPABASE_URL &&
