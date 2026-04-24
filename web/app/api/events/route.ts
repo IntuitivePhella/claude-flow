@@ -30,18 +30,26 @@ export async function POST(request: NextRequest) {
 
     const supabase = getSupabase()
 
+    const eventType = event.hook_event_name || event.hook_event_type || event.type || 'unknown'
+    const sessionId = event.session_id || event.sessionId
+
     if (supabase) {
       // Insert event into Supabase (triggers realtime broadcast)
       const { error } = await supabase.from('agent_flow_events').insert({
         channel_token: token,
-        session_id: event.session_id || event.sessionId,
-        event_type: event.hook_event_name || event.hook_event_type || event.type || 'unknown',
+        session_id: sessionId,
+        event_type: eventType,
         payload: event,
         event_time: Date.now() / 1000,
       })
 
       if (error) {
         console.error('Supabase insert error:', error)
+      }
+
+      // Clean up session events when session ends (/exit)
+      if (eventType === 'SessionEnd') {
+        await supabase.from('agent_flow_events').delete().eq('session_id', sessionId)
       }
     }
 
