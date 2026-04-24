@@ -123,22 +123,22 @@ export function useCloudBridge(): CloudBridgeResult {
           lastActivityTime: Date.now(),
         }
 
-        // Auto-select first session
+        // Always create agent_spawn for new sessions
+        const spawnEvent: SimulationEvent = {
+          time: 0,
+          type: 'agent_spawn',
+          payload: { name: ORCHESTRATOR_NAME, isMain: true, task: hookEvent.cwd || 'Cloud Session' },
+          sessionId,
+        }
+        const buf = sessionEventsRef.current.get(sessionId) || []
+        buf.push(spawnEvent)
+        sessionEventsRef.current.set(sessionId, buf)
+
+        // Auto-select first session and push spawn to pending
         if (prev.length === 0) {
           selectedSessionIdRef.current = sessionId
           setSelectedSessionId(sessionId)
-
-          // Emit agent_spawn for new session
-          const spawnEvent: SimulationEvent = {
-            time: 0,
-            type: 'agent_spawn',
-            payload: { name: ORCHESTRATOR_NAME, isMain: true, task: hookEvent.cwd || 'Cloud Session' },
-            sessionId,
-          }
           pendingEventsRef.current.push(spawnEvent)
-          const buf = sessionEventsRef.current.get(sessionId) || []
-          buf.push(spawnEvent)
-          sessionEventsRef.current.set(sessionId, buf)
         }
 
         return [...prev, newSession]
@@ -263,9 +263,22 @@ export function useCloudBridge(): CloudBridgeResult {
   const flushSessionEvents = useCallback((sessionId: string, fromIndex = 0) => {
     const buffered = sessionEventsRef.current.get(sessionId) || []
     pendingEventsRef.current.length = 0
+
+    // Ensure agent_spawn exists at the beginning
+    const hasSpawn = buffered.some(e => e.type === 'agent_spawn')
+    if (!hasSpawn && fromIndex === 0) {
+      const session = sessions.find(s => s.id === sessionId)
+      pendingEventsRef.current.push({
+        time: 0,
+        type: 'agent_spawn',
+        payload: { name: ORCHESTRATOR_NAME, isMain: true, task: session?.label || 'Cloud Session' },
+        sessionId,
+      })
+    }
+
     pendingEventsRef.current.push(...buffered.slice(fromIndex))
     setEventVersion((v) => v + 1)
-  }, [])
+  }, [sessions])
 
   const getSessionEventCount = useCallback((sessionId: string): number => {
     return sessionEventsRef.current.get(sessionId)?.length ?? 0

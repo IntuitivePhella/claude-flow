@@ -1,0 +1,48 @@
+- generic [ref=e1]:
+  - generic [ref=e2]:
+    - generic:
+      - generic:
+        - generic: WAITING FOR AGENT SESSION
+        - generic: Start a Claude Code session to see activity
+    - generic:
+      - generic:
+        - generic:
+          - generic:
+            - generic: idle
+          - generic:
+            - button "✕"
+        - generic:
+          - generic:
+            - paragraph: No messages yet...
+    - generic [ref=e6]:
+      - generic [ref=e9]: LIVE
+      - generic [ref=e10]: 2:15
+      - generic [ref=e13]: "1"
+      - button "⏸ Review" [ref=e14]
+    - generic [ref=e15]:
+      - generic [ref=e33]:
+        - button "test ✕" [ref=e34]:
+          - text: test
+          - generic [ref=e36] [cursor=pointer]: ✕
+        - button "test ✕" [ref=e37]:
+          - text: test
+          - generic [ref=e39] [cursor=pointer]: ✕
+        - button "agent-flow ✕" [active] [ref=e40]:
+          - text: agent-flow
+          - generic [ref=e42] [cursor=pointer]: ✕
+        - button "validation ✕" [ref=e43]:
+          - text: validation
+          - generic [ref=e45] [cursor=pointer]: ✕
+      - generic [ref=e16]:
+        - generic [ref=e17]: 0 agents
+        - generic [ref=e18]:
+          - text: 0k tokens
+          - generic [ref=e19]: ~$0.00
+        - generic [ref=e20]:
+          - button "Files" [ref=e21]
+          - button "Chat" [ref=e22]
+          - button "$Cost" [ref=e23]
+        - button "Timeline" [ref=e24]
+        - button [ref=e25]:
+          - img [ref=e26]
+  - alert [ref=e30]
