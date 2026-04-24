@@ -187,6 +187,45 @@ pnpm run cloud:relay -- --url https://your-site.netlify.app --token YOUR_TOKEN -
 
 The relay watches your local JSONL transcripts and sends rich event data to the cloud.
 
+## Monitoring Any Project
+
+To monitor Claude Code usage in any codebase:
+
+### Key Points
+
+| Aspect | Detail |
+|--------|--------|
+| **Workspace** | Use `--workspace` to specify which project to monitor (defaults to current directory) |
+| **Same machine** | The relay must run on the same machine where Claude Code is running |
+| **Token match** | The token in local hooks must match the cloud deployment's `AGENT_FLOW_CHANNEL_TOKEN` |
+| **Auto-detection** | The relay automatically detects active sessions in the specified workspace |
+| **Full features** | Without the relay, only tool calls appear (no chat, tokens, or cost tracking) |
+
+### Typical Workflow
+
+```bash
+# Terminal 1: Start the cloud relay for your project
+pnpm run cloud:relay -- --url https://your-site.netlify.app --token YOUR_TOKEN --workspace /path/to/your/project
+
+# Terminal 2: Use Claude Code normally in that project
+cd /path/to/your/project
+claude
+```
+
+The web UI will automatically show the session when Claude Code starts.
+
+### Monitoring Multiple Projects
+
+Run separate relay instances for each project:
+
+```bash
+# Project A
+pnpm run cloud:relay -- --url https://your-site.netlify.app --token YOUR_TOKEN --workspace /path/to/project-a
+
+# Project B (different terminal)
+pnpm run cloud:relay -- --url https://your-site.netlify.app --token YOUR_TOKEN --workspace /path/to/project-b
+```
+
 ## Development
 
 ```bash
