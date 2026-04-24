@@ -58,14 +58,17 @@ export function useCloudBridge(): CloudBridgeResult {
     // Subscribe to realtime channel
     const channel = supabase.channel(`agent-flow:${token}`)
 
+    console.log('[CloudBridge] Connecting to Supabase...', { supabaseUrl, token: token.slice(0, 8) + '...' })
+
     channel
       .on('broadcast', { event: 'agent-event' }, ({ payload }) => {
+        console.log('[CloudBridge] Realtime event received:', payload)
         processEvent(payload)
       })
       .subscribe((status) => {
+        console.log('[CloudBridge] Subscription status:', status)
         if (status === 'SUBSCRIBED') {
           setConnectionStatus('connected')
-          // Load recent events
           loadRecentEvents(token)
         } else if (status === 'CLOSED' || status === 'CHANNEL_ERROR') {
           setConnectionStatus('disconnected')
@@ -81,21 +84,27 @@ export function useCloudBridge(): CloudBridgeResult {
 
   const loadRecentEvents = async (token: string) => {
     try {
+      console.log('[CloudBridge] Loading recent events...')
       const res = await fetch(`/api/events?token=${token}`)
-      if (!res.ok) return
+      if (!res.ok) {
+        console.error('[CloudBridge] Failed to fetch events:', res.status)
+        return
+      }
 
       const { events } = await res.json()
+      console.log('[CloudBridge] Loaded events:', events?.length || 0)
       for (const event of events || []) {
         processEvent(event.payload)
       }
     } catch (e) {
-      console.error('Failed to load recent events:', e)
+      console.error('[CloudBridge] Failed to load recent events:', e)
     }
   }
 
   const processEvent = (hookEvent: any) => {
     const sessionId = hookEvent.session_id || hookEvent.sessionId || 'unknown'
     const eventType = hookEvent.hook_event_name || hookEvent.hook_event_type || hookEvent.type
+    console.log('[CloudBridge] Processing event:', { sessionId, eventType, hookEvent })
 
     // Track session start time
     if (!sessionStartTimesRef.current.has(sessionId)) {
