@@ -54,8 +54,6 @@ export function useCloudBridge(): CloudBridgeResult {
     const supabase = createClient(supabaseUrl, supabaseKey)
     supabaseRef.current = supabase
 
-    setConnectionStatus('connecting')
-
     // Subscribe to realtime channel
     const channel = supabase.channel(`agent-flow:${token}`)
 
