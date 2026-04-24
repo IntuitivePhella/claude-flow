@@ -160,8 +160,134 @@ export function useCloudBridge(): CloudBridgeResult {
 
   const convertToSimulationEvent = (hookEvent: any, sessionId: string): SimulationEvent | null => {
     const eventType = hookEvent.hook_event_name || hookEvent.hook_event_type || hookEvent.type
+    const relayEventType = hookEvent._relay_event_type
     const startTime = sessionStartTimesRef.current.get(sessionId) || Date.now()
-    const time = (Date.now() - startTime) / 1000
+    const eventTime = hookEvent.time ?? (Date.now() - startTime) / 1000
+
+    // If event came from cloud relay with _relay_event_type, pass through directly
+    if (relayEventType) {
+      const agentName = hookEvent.agent || ORCHESTRATOR_NAME
+      switch (relayEventType) {
+        case 'message':
+          return {
+            time: eventTime,
+            type: 'message',
+            payload: {
+              agent: agentName,
+              role: hookEvent.role,
+              content: hookEvent.content,
+            },
+            sessionId,
+          }
+        case 'context_update':
+          return {
+            time: eventTime,
+            type: 'context_update',
+            payload: {
+              agent: agentName,
+              tokens: hookEvent.tokens,
+              breakdown: hookEvent.breakdown,
+            },
+            sessionId,
+          }
+        case 'model_detected':
+          return {
+            time: eventTime,
+            type: 'model_detected',
+            payload: {
+              agent: agentName,
+              model: hookEvent.model,
+            },
+            sessionId,
+          }
+        case 'tool_call_start':
+          return {
+            time: eventTime,
+            type: 'tool_call_start',
+            payload: {
+              agent: agentName,
+              tool: hookEvent.tool,
+              args: hookEvent.args,
+              preview: hookEvent.preview,
+              inputData: hookEvent.inputData,
+            },
+            sessionId,
+          }
+        case 'tool_call_end':
+          return {
+            time: eventTime,
+            type: 'tool_call_end',
+            payload: {
+              agent: agentName,
+              tool: hookEvent.tool,
+              result: hookEvent.result,
+              tokenCost: hookEvent.tokenCost,
+              discovery: hookEvent.discovery,
+              isError: hookEvent.isError,
+              errorMessage: hookEvent.errorMessage,
+            },
+            sessionId,
+          }
+        case 'subagent_dispatch':
+          return {
+            time: eventTime,
+            type: 'subagent_dispatch',
+            payload: {
+              parent: hookEvent.parent || ORCHESTRATOR_NAME,
+              name: hookEvent.name,
+              task: hookEvent.task,
+            },
+            sessionId,
+          }
+        case 'subagent_return':
+          return {
+            time: eventTime,
+            type: 'subagent_return',
+            payload: {
+              child: hookEvent.child,
+              parent: hookEvent.parent,
+              summary: hookEvent.summary,
+            },
+            sessionId,
+          }
+        case 'agent_spawn':
+          return {
+            time: eventTime,
+            type: 'agent_spawn',
+            payload: {
+              name: hookEvent.name || agentName,
+              isMain: hookEvent.isMain,
+              task: hookEvent.task,
+              model: hookEvent.model,
+            },
+            sessionId,
+          }
+        case 'agent_complete':
+          setSessions((prev) =>
+            prev.map((s) => (s.id === sessionId ? { ...s, status: 'completed' as const } : s))
+          )
+          return {
+            time: eventTime,
+            type: 'agent_complete',
+            payload: { name: hookEvent.name || agentName },
+            sessionId,
+          }
+        case 'permission_requested':
+          return {
+            time: eventTime,
+            type: 'permission_requested',
+            payload: {
+              agent: agentName,
+              tool: hookEvent.tool,
+              args: hookEvent.args,
+            },
+            sessionId,
+          }
+      }
+    }
+
+    // Fallback: handle simple hook events (from setup-cloud-hooks.js)
+    const time = eventTime
 
     switch (eventType) {
       case 'SessionStart':
